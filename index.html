@@ -1,0 +1,784 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Театр Свой · v7</title>
+<style>
+
+  @font-face { font-family: 'Koryavy Paltsem'; src: url('assets/4e842fdd4b.otf') format('opentype'); font-display: swap; }
+  @font-face { font-family: 'Unbounded'; src: url('assets/ede6a89646.ttf') format('truetype'); font-weight: 300; font-display: swap; }
+  @font-face { font-family: 'Unbounded'; src: url('assets/7ceaf710d1.ttf') format('truetype'); font-weight: 400; font-display: swap; }
+  @font-face { font-family: 'Unbounded'; src: url('assets/1fc6ac4904.ttf') format('truetype'); font-weight: 700; font-display: swap; }
+  @font-face { font-family: 'Unbounded'; src: url('assets/564271e91b.ttf') format('truetype'); font-weight: 900; font-display: swap; }
+
+  :root {
+    --bg: #0A0A0A;
+    --surface: #141414;
+    --white: #FFFFFF;
+    --text-soft: #DCDCDC;
+    --muted: #8E8E8E;
+    --line: rgba(255, 255, 255, 0.22);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body {
+    width: 100%; height: 100%;
+    background: #000000;
+    font-family: 'Unbounded', sans-serif;
+    font-weight: 300;
+    color: var(--white);
+    overflow: hidden;
+    display: flex; align-items: center; justify-content: center;
+    -webkit-font-smoothing: antialiased;
+  }
+  .deck-stage-wrap { position: relative; width: 1920px; height: 1080px; transform-origin: center center; flex-shrink: 0; }
+  /* v7.1: CSS-only fit, works even where scripts are off (previews) */
+  .deck-stage-wrap { --fit: min(tan(atan2(100vw, 1920px)), tan(atan2(100vh, 1080px))); transform: scale(var(--fit)); }
+  .slide {
+    position: absolute; inset: 0; width: 1920px; height: 1080px;
+    overflow: hidden; display: none;
+    background: var(--bg); color: var(--white);
+  }
+  .slide.active { display: block; }
+
+  /* Stage / spectacle & Simonov photos: subtle 15% color */
+  .slide img { display: block; filter: grayscale(85%) contrast(1.10) brightness(0.98); }
+  /* Individual upper actor portraits, Tyunina, Ignashin & Slide 6 hands: strictly 100% B&W */
+  .slide img.bw-pure { filter: grayscale(100%) contrast(1.14) brightness(0.96) !important; }
+
+  .k-hand { font-family: 'Koryavy Paltsem', 'Unbounded', sans-serif; font-weight: 400; letter-spacing: 0.01em; }
+  .k-punct { font-family: 'Unbounded', sans-serif; font-weight: 900; }
+
+  .pad {
+    position: relative; z-index: 5; width: 100%; height: 100%; padding: 58px 96px 52px;
+    display: flex; flex-direction: column; justify-content: space-between;
+  }
+  .hdr { display: flex; align-items: center; justify-content: space-between; width: 100%; }
+  .kicker { font-family: 'Unbounded', sans-serif; font-size: 16px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: var(--white); }
+  .kicker-dim { font-family: 'Unbounded', sans-serif; font-size: 16px; font-weight: 400; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); }
+  .folio { font-family: 'Unbounded', sans-serif; font-size: 16px; font-weight: 400; letter-spacing: 0.12em; color: var(--muted); }
+
+  .h-disp { font-family: 'Unbounded', sans-serif; font-weight: 900; font-size: 58px; line-height: 1.02; letter-spacing: -0.03em; color: var(--white); }
+  .h-sub-disp { font-family: 'Unbounded', sans-serif; font-weight: 700; font-size: 28px; line-height: 1.15; letter-spacing: -0.02em; color: var(--white); }
+  .body-lg { font-family: 'Unbounded', sans-serif; font-size: 25px; line-height: 1.52; font-weight: 300; color: var(--text-soft); }
+  .body-md { font-family: 'Unbounded', sans-serif; font-size: 21px; line-height: 1.52; font-weight: 300; color: var(--text-soft); }
+  .body-sm { font-family: 'Unbounded', sans-serif; font-size: 18px; line-height: 1.50; font-weight: 300; color: var(--text-soft); }
+  strong { font-weight: 700; color: var(--white); }
+
+  .quote-txt { font-family: 'Unbounded', sans-serif; font-size: 22px; line-height: 1.48; font-weight: 400; color: var(--white); }
+  .quote-src { font-family: 'Unbounded', sans-serif; font-size: 16px; font-weight: 300; margin-top: 12px; color: var(--muted); }
+
+  .bg-full { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; z-index: 1; }
+
+  .music-link {
+    display: inline-flex; align-items: center; gap: 9px;
+    text-decoration: none;
+    font-family: 'Unbounded', sans-serif; font-size: 14px; font-weight: 300;
+    color: rgba(255,255,255,0.78); letter-spacing: 0.03em;
+    border-bottom: 1px solid rgba(255,255,255,0.28); padding-bottom: 4px;
+  }
+
+  .name-float {
+    position: absolute; z-index: 8;
+    font-family: 'Unbounded', sans-serif; font-size: 15px; font-weight: 400;
+    color: #FFFFFF; white-space: nowrap;
+    text-shadow: 0 2px 12px rgba(0,0,0,0.95), 0 0 4px rgba(0,0,0,0.95);
+  }
+  .name-float span { display: block; font-size: 12px; font-weight: 300; color: #A8A8A8; margin-top: 2px; }
+
+  .svoy-lockup { display: inline-flex; flex-direction: column; align-items: flex-start; line-height: 0.84; }
+  .svoy-hand-lg { font-size: 168px; line-height: 0.82; color: transparent; -webkit-text-stroke: 3.5px #FFFFFF; paint-order: stroke fill; }
+  .svoy-unb-lg { font-family: 'Unbounded', sans-serif; font-weight: 900; font-size: 98px; letter-spacing: -0.04em; color: #FFFFFF; margin-left: 36px; }
+
+  /* Subtle whisper-thin framing on Slide 2 — no harsh square fills or top bars */
+  .school-frame {
+    position: relative;
+    background: transparent;
+    border: 1px solid rgba(255,255,255,0.08);
+    padding: 36px 32px;
+  }
+
+  .deck-nav {
+    position: fixed; left: 50%; top: 14px; transform: translateX(-50%); z-index: 999; transition: opacity .4s ease; opacity: .85;
+    display: flex; align-items: center; gap: 10px; padding: 6px 12px;
+    border-radius: 9999px; background: rgba(20,20,20,0.85); border: 1px solid rgba(255,255,255,0.28);
+    color: #FFFFFF; font-family: 'Unbounded', sans-serif; font-size: 13px;
+  }
+  .deck-nav button { background: none; border: none; color: #FFFFFF; font-size: 16px; cursor: pointer; padding: 2px 6px; }
+
+  /* ===== v7: paper tags (slide 19) ===== */
+  .paper-tag {
+    align-self: flex-start;
+    font-family: 'Unbounded', sans-serif; font-weight: 700; font-size: 13px; letter-spacing: 0.06em;
+    color: #1A1814; background: #E8E2D2; padding: 11px 18px 10px;
+    box-shadow: 0 8px 18px rgba(0,0,0,0.55), inset 0 0 0 1px rgba(0,0,0,0.05);
+    clip-path: polygon(0% 8%, 3% 0%, 9% 6%, 16% 0%, 25% 5%, 34% 0%, 46% 6%, 58% 0%, 70% 5%, 82% 0%, 93% 6%, 100% 1%, 99% 52%, 100% 94%, 92% 100%, 80% 95%, 66% 100%, 52% 95%, 38% 100%, 24% 95%, 11% 100%, 3% 94%, 0% 100%, 1% 50%);
+  }
+  .paper-tag-solid { background: #F4F1E8; }
+
+  /* ===== v7: quiet reveal animations ===== */
+  @keyframes rise { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+  @keyframes drift { from { transform: scale(1.0); } to { transform: scale(1.035); } }
+  .slide.active .pad > * { animation: rise .7s cubic-bezier(.22,.7,.2,1) both; }
+  .slide.active .pad > *:nth-child(2) { animation-delay: .12s; }
+  .slide.active .pad > *:nth-child(3) { animation-delay: .3s; }
+  .slide.active .reveal-grid > * { animation: fadeIn .8s ease both; }
+  .slide.active .reveal-grid > *:nth-child(1) { animation-delay: .25s; }
+  .slide.active .reveal-grid > *:nth-child(2) { animation-delay: .4s; }
+  .slide.active .reveal-grid > *:nth-child(3) { animation-delay: .55s; }
+  .slide.active .reveal-grid > *:nth-child(4) { animation-delay: .7s; }
+  .slide.active .reveal-grid > *:nth-child(5) { animation-delay: .85s; }
+  .slide.active img.bg-full { animation: drift 14s ease-out both; transform-origin: 60% 40%; }
+
+  /* ===== v7: phone helpers ===== */
+  html, body { touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
+  .rotate-hint {
+    position: fixed; left: 50%; top: 62px; transform: translateX(-50%); z-index: 1000;
+    display: none; padding: 9px 16px; border-radius: 9999px;
+    background: rgba(20,20,20,0.92); border: 1px solid rgba(255,255,255,0.28);
+    font-family: 'Unbounded', sans-serif; font-size: 12px; color: #FFFFFF; white-space: nowrap;
+  }
+  @media (orientation: portrait) and (max-width: 900px) { .rotate-hint.on { display: block; } }
+  @media (prefers-reduced-motion: reduce) {
+    .slide.active .pad > *, .slide.active .reveal-grid > *, .slide.active img.bg-full { animation: none !important; }
+  }
+
+  /* v7.1: nav moved to top-center so it never covers links; hides when idle */
+  .deck-nav.idle { opacity: 0; pointer-events: none; }
+  .deck-nav button:hover { opacity: .7; }
+
+  /* v7.2: video presentation button + player */
+  .s1-links { display: flex; align-items: center; gap: 34px; }
+  .video-link { cursor: pointer; background: none; border: none; border-bottom: 1px solid rgba(255,255,255,0.28); }
+  .vmodal { position: fixed; inset: 0; z-index: 2000; display: none; align-items: center; justify-content: center; background: rgba(0,0,0,0.92); padding: 4vmin; }
+  .vmodal.on { display: flex; animation: fadeIn .35s ease both; }
+  .vmodal video { max-width: 100%; max-height: 100%; width: min(1280px, 100%); background: #000; box-shadow: 0 20px 60px rgba(0,0,0,.6); }
+  .vmodal .vclose { position: absolute; top: 14px; right: 18px; background: none; border: 1px solid rgba(255,255,255,.35); color: #fff; border-radius: 9999px; width: 40px; height: 40px; font-size: 18px; cursor: pointer; font-family: 'Unbounded', sans-serif; }
+  @media print {
+    html, body { background: none; display: block; overflow: visible; }
+    .deck-nav { display: none !important; }
+    .deck-stage-wrap { transform: none !important; width: auto; height: auto; }
+    .slide { display: block !important; position: relative; page-break-after: always; }
+  }
+
+</style>
+</head>
+<body>
+  <div class="deck-stage-wrap" id="deckViewport">
+    
+<section class="slide active" data-slide="1">
+  <img class="bg-full" src="assets/0db166d9f5.jpg" style="object-position: 62% 35%;" alt="В ожидании Годо" />
+  <div style="position:absolute;inset:0;z-index:2;background:linear-gradient(90deg, rgba(10,10,10,0.92) 0%, rgba(10,10,10,0.58) 46%, rgba(10,10,10,0.12) 100%);"></div>
+  <div class="pad">
+    <div class="hdr"><span class="kicker-dim">✦ ТЕАТР «СВОЙ» · МОСКВА</span><span class="folio">01 / 21</span></div>
+    <div style="max-width: 1020px;">
+      <div class="svoy-lockup" style="margin-bottom: 32px;">
+        <span class="svoy-hand-lg"><span class="k-hand">СВОЙ</span></span>
+        <span class="svoy-unb-lg">ТЕАТР</span>
+      </div>
+      <div style="font-family:'Unbounded',sans-serif;font-weight:300;font-size:25px;color:#E6E6E6;line-height:1.45;">
+        Студия выпускников <span style="font-size:32px;color:#FFFFFF;"><span class="k-hand">Кирилла Пирогова</span></span><br/>
+        и <span style="font-size:32px;color:#FFFFFF;"><span class="k-hand">Галины Тюниной</span></span>
+      </div>
+    </div>
+    <div style="display:flex;align-items:center;justify-content:space-between;width:100%;">
+      <div style="font-size:16px;font-weight:300;color:var(--muted);">Щукинский курс К. А. Пирогова</div>
+      <span class="s1-links"><a class="music-link video-link" href="https://www.instagram.com/reel/DavPGttCMIi/" data-video="video/svoy.mp4" target="_blank" rel="noopener noreferrer">▶&nbsp; Видеопрезентация</a><a class="music-link" href="https://music.yandex.ru/search?text=%D0%90%D1%83%D0%BA%D1%86%D1%8B%D0%BE%D0%BD%20%D0%A1%D0%BE%D0%BA%D1%80%D0%BE%D0%B2%D0%B8%D1%89%D0%B5" target="_blank" rel="noopener noreferrer">♪&nbsp; Музыка для настроения</a></span>
+    </div>
+  </div>
+</section>
+<section class="slide" data-slide="2">
+  <div class="pad">
+    <div class="hdr"><span class="kicker-dim">✦ НАША ШКОЛА</span><span class="folio">02 / 21</span></div>
+    <div>
+      <h1 class="h-disp" style="margin-bottom: 52px;">Школа <span style="font-size:68px;"><span class="k-hand">Пирогова и Фоменко</span></span></h1>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:38px;">
+        <div class="school-frame">
+          <div class="kicker-dim" style="margin-bottom:18px;">× 01 · ИСТОК</div>
+          <div class="h-sub-disp" style="margin-bottom:16px;">Пётр Фоменко</div>
+          <p class="body-sm">Основатель «Мастерской П. Н. Фоменко».</p>
+        </div>
+        <div class="school-frame">
+          <div class="kicker-dim" style="margin-bottom:18px;">× 02 · МАСТЕР</div>
+          <div class="h-sub-disp" style="margin-bottom:16px;">Кирилл Пирогов</div>
+          <p class="body-sm">Ученик Фоменко, заслуженный артист России, орден «За заслуги в области культуры и искусства» (2025), выпустил курс в Щукинском институте (2024).</p>
+        </div>
+        <div class="school-frame">
+          <div class="kicker-dim" style="margin-bottom:18px;">× 03 · СТУДИЯ</div>
+          <div style="font-size:38px;color:#FFFFFF;margin-bottom:16px;line-height:1;"><span class="k-hand">Театр Свой</span></div>
+          <p class="body-sm">Выпускники курса Кирилла Пирогова и участники его студии.</p>
+        </div>
+      </div>
+    </div>
+    <div style="font-size:18px;font-weight:300;color:var(--muted);">Театральный институт им. Бориса Щукина · Выпуск 2024</div>
+  </div>
+</section>
+<section class="slide" data-slide="3">
+  <div class="pad">
+    <div class="hdr"><span class="kicker-dim">✦ НАС ВЫПУСКАЛИ</span><span class="folio">03 / 21</span></div>
+    <div>
+      <h1 class="h-disp" style="margin-bottom: 40px;">Мастера <span style="font-size:68px;"><span class="k-hand">нашей школы</span></span></h1>
+      <div class="reveal-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:34px;align-items:stretch;">
+        <div style="background:#141414;color:#FFFFFF;border:1.5px solid #FFFFFF;display:grid;grid-template-columns:250px 1fr;overflow:hidden;">
+          <img class="bw-pure" src="assets/fa16db6cad.jpg" alt="Кирилл Пирогов" style="width:100%;height:100%;min-height:460px;object-fit:cover;object-position:center 22%;" />
+          <div style="padding:36px 32px;display:flex;flex-direction:column;justify-content:space-between;">
+            <div>
+              <div class="kicker-dim" style="font-size:14px;margin-bottom:14px;">ХУДОЖЕСТВЕННЫЙ РУКОВОДИТЕЛЬ</div>
+              <div style="font-size:46px;color:#FFFFFF;margin-bottom:16px;line-height:1;"><span class="k-hand">Кирилл Пирогов</span></div>
+              <p style="font-size:18px;line-height:1.48;font-weight:300;color:var(--text-soft);margin-bottom:16px;">
+                Художественный руководитель курса в Щукинском институте и нашей студии.
+              </p>
+            </div>
+            <div style="font-size:13px;line-height:1.48;font-weight:300;color:var(--muted);border-top:1px solid rgba(255,255,255,0.20);padding-top:14px;">
+              Заслуженный артист России · орден «За заслуги в области культуры и искусства» (2025) · ведущий артист и режиссёр «Мастерской П. Фоменко» · мастер ГИТИСа (2025).
+            </div>
+          </div>
+        </div>
+        <div style="background:#141414;color:#FFFFFF;border:1.5px solid #FFFFFF;display:grid;grid-template-columns:250px 1fr;overflow:hidden;">
+          <img class="bw-pure" src="assets/38cf163211.jpg" alt="Галина Тюнина" style="width:100%;height:100%;min-height:460px;object-fit:cover;object-position:center 18%;" />
+          <div style="padding:36px 32px;display:flex;flex-direction:column;justify-content:space-between;">
+            <div>
+              <div class="kicker-dim" style="font-size:14px;margin-bottom:14px;">ПЕДАГОГ И СОРЕЖИССЁР</div>
+              <div style="font-size:46px;color:#FFFFFF;margin-bottom:16px;line-height:1;"><span class="k-hand">Галина Тюнина</span></div>
+              <p style="font-size:18px;line-height:1.48;font-weight:300;color:var(--text-soft);margin-bottom:16px;">
+                Педагог курса, сорежиссёр «Женитьбы Фигаро», работала с нами над «Ревизором».
+              </p>
+            </div>
+            <div style="font-size:13px;line-height:1.48;font-weight:300;color:var(--muted);border-top:1px solid rgba(255,255,255,0.20);padding-top:14px;">
+              Народная артистка России · Госпремия РФ (2002) · «Золотая маска» (2002) · «Хрустальная Турандот» (2005, 2019) · ведущая актриса «Мастерской П. Фоменко» · мастер в ГИТИСе (2025).
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div style="font-weight:400;font-size:21px;color:#FFFFFF;">
+      ✦ Каждый наш спектакль прошёл через руки мастеров школы Фоменко
+    </div>
+  </div>
+</section>
+<section class="slide" data-slide="4">
+  <div class="pad">
+    <div class="hdr"><span class="kicker-dim">✦ НАШ ПУТЬ</span><span class="folio">04 / 21</span></div>
+    <div>
+      <h1 class="h-disp" style="margin-bottom: 40px;">Где мы <span style="font-size:68px;"><span class="k-hand">уже играли</span></span></h1>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:26px 32px;">
+        <div style="background:#141414;border:1px solid rgba(255,255,255,0.18);border-left:4px solid #FFFFFF;padding:24px 26px;">
+          <div class="kicker-dim" style="font-size:14px;margin-bottom:10px;">× СЦЕНА 01</div>
+          <div class="h-sub-disp" style="font-size:22px;margin-bottom:10px;">Щукинский театр</div>
+          <p class="body-sm" style="font-size:16px;">«Женитьба Фигаро», «Бунин»</p>
+        </div>
+        <div style="background:#141414;border:1px solid rgba(255,255,255,0.18);border-left:4px solid #FFFFFF;padding:24px 26px;">
+          <div class="kicker-dim" style="font-size:14px;margin-bottom:10px;">× СЦЕНА 02</div>
+          <div class="h-sub-disp" style="font-size:22px;margin-bottom:10px;">Мастерская Фоменко</div>
+          <p class="body-sm" style="font-size:16px;">«Женитьба Фигаро» на сцене Мастерской</p>
+        </div>
+        <div style="background:#141414;border:1px solid rgba(255,255,255,0.18);border-left:4px solid #FFFFFF;padding:24px 26px;">
+          <div class="kicker-dim" style="font-size:14px;margin-bottom:10px;">× СЦЕНА 03</div>
+          <div class="h-sub-disp" style="font-size:22px;margin-bottom:10px;">ЦДР · Старт</div>
+          <p class="body-sm" style="font-size:16px;">«В ожидании Годо», «И. А. Бунин. В Москве»</p>
+        </div>
+        <div style="background:#141414;border:1px solid rgba(255,255,255,0.18);border-left:4px solid #FFFFFF;padding:24px 26px;">
+          <div class="kicker-dim" style="font-size:14px;margin-bottom:10px;">× СЦЕНА 04</div>
+          <div class="h-sub-disp" style="font-size:22px;margin-bottom:10px;">Театр «Эрмитаж»</div>
+          <p class="body-sm" style="font-size:16px;">Выступление на сцене театра</p>
+        </div>
+        <div style="background:#141414;border:1px solid rgba(255,255,255,0.18);border-left:4px solid #FFFFFF;padding:24px 26px;">
+          <div class="kicker-dim" style="font-size:14px;margin-bottom:10px;">× СЦЕНА 05</div>
+          <div class="h-sub-disp" style="font-size:22px;margin-bottom:10px;">Дом Гоголя</div>
+          <p class="body-sm" style="font-size:16px;">«Ревизор»</p>
+        </div></div>
+    </div>
+    <div style="font-weight:400;font-size:21px;color:var(--text-soft);">
+      ✦ Спасибо площадкам, которые нам доверяли
+    </div>
+  </div>
+</section>
+<section class="slide" data-slide="5">
+  <div style="position:absolute;left:0;top:0;width:760px;height:1080px;overflow:hidden;z-index:1;">
+    <img class="bw-pure" src="assets/533e67fa5a.jpg" alt="Алексей Игнашин" style="width:100%;height:100%;object-fit:cover;object-position:center 12%;" />
+    <div style="position:absolute;inset:0;background:linear-gradient(90deg, rgba(10,10,10,0) 64%, #0A0A0A 100%);"></div>
+  </div>
+  <div class="pad">
+    <div class="hdr"><span></span><span class="folio">05 / 21</span></div>
+    <div style="margin-left:780px;max-width:920px;">
+      <div class="kicker-dim" style="margin-bottom:20px;">РЕЖИССЁР И ОРГАНИЗАТОР</div>
+      <h1 class="h-disp" style="font-size:74px;margin-bottom:24px;">Алексей<br/><span style="font-size:98px;"><span class="k-hand">Игнашин</span></span></h1>
+      <div style="width:120px;height:2px;background:#FFFFFF;margin-bottom:32px;"></div>
+      <p class="body-lg" style="font-size:25px;">
+        Режиссёр и организатор студии и Театра «Свой». Выпускник курса Кирилла Пирогова, Щукинский институт (2024).
+      </p>
+    </div>
+    <div style="margin-left:780px;font-size:18px;font-weight:300;color:var(--muted);">Театр «Свой»</div>
+  </div>
+</section>
+<section class="slide" data-slide="6">
+  <div style="position:absolute;left:0;top:0;width:820px;height:1080px;overflow:hidden;z-index:1;">
+    <img class="bw-pure" src="assets/c7c0a8f64b.jpg" alt="В ожидании Годо — руки" style="width:100%;height:100%;object-fit:cover;object-position:center center;" />
+    <div style="position:absolute;inset:0;background:linear-gradient(90deg, rgba(10,10,10,0.05) 60%, #0A0A0A 100%);"></div>
+  </div>
+  <div class="pad">
+    <div class="hdr"><span class="kicker-dim">✦ БЛОК 1 · ГЛАВНЫЙ ПРОЕКТ</span><span class="folio">06 / 21</span></div>
+    <div style="margin-left:840px;max-width:870px;">
+      <div style="display:inline-block;border:1px solid #FFFFFF;color:#FFFFFF;padding:7px 18px;font-weight:700;font-size:14px;letter-spacing:0.12em;margin-bottom:22px;">ИГРАЕМ СЕЙЧАС</div>
+      <h1 class="h-disp" style="font-size:66px;margin-bottom:18px;">В ожидании <span style="font-size:84px;"><span class="k-hand">Годо</span></span></h1>
+      <div style="font-weight:400;font-size:20px;color:var(--muted);margin-bottom:28px;">
+        Сэмюэл Беккет · трагикомедия · постановка Кирилла Пирогова
+      </div>
+      <p class="body-md">
+        Двое ждут того, кто так и не придёт. Самая знаменитая пьеса театра абсурда — о живых людях, смешно и очень по-человечески. Свои декорации и свет.
+      </p>
+    </div>
+    <div style="margin-left:840px;">
+      <a class="music-link" href="https://music.yandex.ru/search?text=%D0%90%D1%83%D0%BA%D1%86%D1%8B%D0%BE%D0%BD%20%D0%94%D0%BE%D1%80%D0%BE%D0%B3%D0%B0" target="_blank" rel="noopener noreferrer">♪&nbsp; Музыка для настроения</a>
+    </div>
+  </div>
+</section>
+<section class="slide" data-slide="7">
+  <div style="position:absolute;left:980px;top:0;width:720px;height:1080px;z-index:1;">
+    <img src="assets/1e210cd833.jpg" alt="Артисты В ожидании Годо" style="width:100%;height:100%;object-fit:cover;" />
+    <div style="position:absolute;inset:0;background:linear-gradient(90deg, #0A0A0A 0%, rgba(10,10,10,0) 14%, rgba(10,10,10,0) 88%, #0A0A0A 100%);"></div>
+  </div>
+  <div class="name-float" style="left:820px;top:338px;text-align:right;">Виктор Трайбер<span>Владимир</span></div>
+  <div class="name-float" style="left:1235px;top:210px;">Алексей Игнашин<span>режиссёр</span></div>
+  <div class="name-float" style="left:1566px;top:362px;">Максим Заболотний<span>артист</span></div>
+  <div class="name-float" style="left:825px;top:936px;text-align:right;">Егор Разливанов<span>артист</span></div>
+
+  <div class="pad">
+    <div class="hdr"><span class="kicker-dim">✦ В ОЖИДАНИИ ГОДО · АРТИСТЫ</span><span class="folio">07 / 21</span></div>
+    <div style="max-width:740px;">
+      <div class="kicker-dim" style="margin-bottom:20px;">КТО НА СЦЕНЕ</div>
+      <h1 class="h-disp" style="font-size:74px;margin-bottom:28px;">Кто ждёт<br/><span style="font-size:98px;"><span class="k-hand">Годо</span></span>?</h1>
+      <p class="body-lg" style="max-width:700px;">
+        Все — выпускники курса Кирилла Пирогова, Театральный институт им. Бориса Щукина.
+      </p>
+    </div>
+    <div style="font-size:18px;font-weight:400;color:var(--white);">✦ Три артиста в центре следующей главы</div>
+  </div>
+</section>
+<section class="slide" data-slide="8">
+  <div class="pad">
+    <div class="hdr"><span class="kicker-dim">✦ АРТИСТ 1 ИЗ 3</span><span class="folio">08 / 21</span></div>
+    <div style="display:grid;grid-template-columns:520px 1fr;gap:64px;align-items:start;">
+      <div style="display:flex;flex-direction:column;gap:20px;">
+        <img class="bw-pure" src="assets/768423bb5a.jpg" alt="Максим Заболотний" style="width:520px;height:420px;object-fit:cover;object-position:center 15%;border:1px solid rgba(255,255,255,0.45);" />
+        <div style="display:flex;gap:18px;align-items:center;">
+          <img src="assets/c362707776.jpg" alt="Максим Заболотний в Годо" style="width:300px;height:205px;object-fit:cover;object-position:center 20%;border:1px solid rgba(255,255,255,0.28);" />
+          <div style="font-size:17px;font-weight:400;color:var(--white);line-height:1.4;">В спектакле<br/>«В ожидании Годо»</div>
+        </div>
+      </div>
+      <div>
+        <h1 class="h-disp" style="font-size:52px;margin-bottom:22px;">Максим <span style="font-size:66px;"><span class="k-hand">Заболотний</span></span></h1>
+        <p class="body-md" style="margin-bottom:28px;">
+          <strong>Артист РАМТа</strong> с 2024 года: главная роль Фёдор в премьере <strong>«Фро»</strong> (2026), Рали в «Игре интересов».<br/>
+          Лауреат чтецких конкурсов «Табуретка» и «Добрый сказ». Кино: «Лимитчицы», «Второй брак».
+        </p>
+        <div style="border-left:2px solid #FFFFFF;padding-left:26px;">
+          <div class="quote-txt">«Его молодой офицер Рали буквально вывернул мне душу наизнанку. Превосходное актёрское проживание, браво!»</div>
+          <div class="quote-src">— Ирина Петровская-Мишина, Musecube</div>
+        </div>
+      </div>
+    </div>
+    <div style="display:flex;align-items:center;justify-content:space-between;padding-top:18px;border-top:1px solid rgba(255,255,255,0.20);"><div style="display:flex;gap:36px;"><div style="display:flex;align-items:center;gap:14px;opacity:1;"><img class="bw-pure" src="assets/768423bb5a.jpg" alt="М. Заболотний" style="width:52px;height:52px;border-radius:50%;object-fit:cover;object-position:center 20%;border:2px solid #FFFFFF;" /><span style="font-family:Unbounded,sans-serif;font-size:17px;font-weight:700;color:#FFFFFF;">М. Заболотний</span></div><div style="display:flex;align-items:center;gap:14px;opacity:0.42;"><img class="bw-pure" src="assets/e312290dca.jpg" alt="Е. Разливанов" style="width:52px;height:52px;border-radius:50%;object-fit:cover;object-position:center 20%;border:2px solid rgba(255,255,255,0.22);" /><span style="font-family:Unbounded,sans-serif;font-size:17px;font-weight:300;color:#A8A8A8;">Е. Разливанов</span></div><div style="display:flex;align-items:center;gap:14px;opacity:0.42;"><img class="bw-pure" src="assets/0db166d9f5.jpg" alt="В. Трайбер" style="width:52px;height:52px;border-radius:50%;object-fit:cover;object-position:center 20%;border:2px solid rgba(255,255,255,0.22);" /><span style="font-family:Unbounded,sans-serif;font-size:17px;font-weight:300;color:#A8A8A8;">В. Трайбер</span></div></div><div class="kicker" style="font-size:15px;">АРТИСТ 1 ИЗ 3</div></div>
+  </div>
+</section>
+<section class="slide" data-slide="9">
+  <div class="pad">
+    <div class="hdr"><span class="kicker-dim">✦ АРТИСТ 2 ИЗ 3</span><span class="folio">09 / 21</span></div>
+    <div style="display:grid;grid-template-columns:520px 1fr;gap:64px;align-items:start;">
+      <div style="display:flex;flex-direction:column;gap:20px;">
+        <img class="bw-pure" src="assets/e312290dca.jpg" alt="Егор Разливанов" style="width:520px;height:420px;object-fit:cover;object-position:center 20%;border:1px solid rgba(255,255,255,0.45);" />
+        <div style="display:flex;gap:18px;align-items:center;">
+          <img src="assets/f7f18e25b2.jpg" alt="Вахтанговская сцена" style="width:300px;height:205px;object-fit:cover;object-position:center 20%;border:1px solid rgba(255,255,255,0.28);" />
+          <div style="font-size:17px;font-weight:400;color:var(--white);line-height:1.4;">На сцене<br/>Театра Вахтангова</div>
+        </div>
+      </div>
+      <div>
+        <h1 class="h-disp" style="font-size:52px;margin-bottom:22px;">Егор <span style="font-size:66px;"><span class="k-hand">Разливанов</span></span></h1>
+        <div style="background:#FFFFFF;color:#0A0A0A;padding:20px 26px;margin-bottom:26px;">
+          <div style="font-weight:700;font-size:13px;letter-spacing:0.12em;margin-bottom:6px;">НАГРАДА · 2025</div>
+          <div style="font-weight:700;font-size:21px;line-height:1.35;">
+            Премия им. В. А. Этуша «Путёвка в жизнь» за лучший дебют на Вахтанговской сцене
+          </div>
+        </div>
+        <p class="body-md">
+          <strong>Артист Театра им. Евг. Вахтангова</strong> с 2024 года: главная роль в «Первой любви последнего года».<br/>
+          Также: «Блеск и пепел», «Ионыч», «Мадемуазель Нитуш». Кино: сериал «Рослый».
+        </p>
+      </div>
+    </div>
+    <div style="display:flex;align-items:center;justify-content:space-between;padding-top:18px;border-top:1px solid rgba(255,255,255,0.20);"><div style="display:flex;gap:36px;"><div style="display:flex;align-items:center;gap:14px;opacity:1;"><img class="bw-pure" src="assets/768423bb5a.jpg" alt="М. Заболотний" style="width:52px;height:52px;border-radius:50%;object-fit:cover;object-position:center 20%;border:2px solid rgba(255,255,255,0.65);" /><span style="font-family:Unbounded,sans-serif;font-size:17px;font-weight:300;color:#A8A8A8;">М. Заболотний</span></div><div style="display:flex;align-items:center;gap:14px;opacity:1;"><img class="bw-pure" src="assets/e312290dca.jpg" alt="Е. Разливанов" style="width:52px;height:52px;border-radius:50%;object-fit:cover;object-position:center 20%;border:2px solid #FFFFFF;" /><span style="font-family:Unbounded,sans-serif;font-size:17px;font-weight:700;color:#FFFFFF;">Е. Разливанов</span></div><div style="display:flex;align-items:center;gap:14px;opacity:0.42;"><img class="bw-pure" src="assets/0db166d9f5.jpg" alt="В. Трайбер" style="width:52px;height:52px;border-radius:50%;object-fit:cover;object-position:center 20%;border:2px solid rgba(255,255,255,0.22);" /><span style="font-family:Unbounded,sans-serif;font-size:17px;font-weight:300;color:#A8A8A8;">В. Трайбер</span></div></div><div class="kicker" style="font-size:15px;">АРТИСТ 2 ИЗ 3</div></div>
+  </div>
+</section>
+<section class="slide" data-slide="10">
+  <div class="pad">
+    <div class="hdr"><span class="kicker-dim">✦ АРТИСТ 3 ИЗ 3 · ВЛАДИМИР (ДИДИ)</span><span class="folio">10 / 21</span></div>
+    <div style="display:grid;grid-template-columns:520px 1fr;gap:64px;align-items:start;">
+      <div style="display:flex;flex-direction:column;gap:20px;">
+        <img class="bw-pure" src="assets/0db166d9f5.jpg" alt="Виктор Трайбер — Владимир" style="width:520px;height:420px;object-fit:cover;object-position:54% 34%;border:1px solid rgba(255,255,255,0.45);" />
+        <div style="display:flex;gap:18px;align-items:center;">
+          <img src="assets/cb23b435b5.jpg" alt="Виктор Трайбер в Годо" style="width:300px;height:205px;object-fit:cover;object-position:80% 24%;border:1px solid rgba(255,255,255,0.28);" />
+          <div style="font-size:17px;font-weight:400;color:var(--white);line-height:1.4;">Роль в «Годо»:<br/>Владимир (Диди)</div>
+        </div>
+      </div>
+      <div>
+        <h1 class="h-disp" style="font-size:52px;margin-bottom:22px;">Виктор <span style="font-size:66px;"><span class="k-hand">Трайбер</span></span></h1>
+        <p class="body-md" style="margin-bottom:28px;">
+          <strong>Артист «Мастерской Петра Фоменко»</strong> (с 2026): Лопахин в «Вишнёвом саде», Сергей в «Селе Степанчикове».<br/>
+          Кино: «Смерть в объективе», «Гамлет». Саксофон, фортепиано, вокал, фехтование.
+        </p>
+        <div style="border-left:2px solid #FFFFFF;padding-left:26px;">
+          <div class="quote-txt">«Критики и зрители отмечают его индивидуальность, музыкальность и пластику»</div>
+          <div class="quote-src">— МТС Live</div>
+        </div>
+      </div>
+    </div>
+    <div style="display:flex;align-items:center;justify-content:space-between;padding-top:18px;border-top:1px solid rgba(255,255,255,0.20);"><div style="display:flex;gap:36px;"><div style="display:flex;align-items:center;gap:14px;opacity:1;"><img class="bw-pure" src="assets/768423bb5a.jpg" alt="М. Заболотний" style="width:52px;height:52px;border-radius:50%;object-fit:cover;object-position:center 20%;border:2px solid rgba(255,255,255,0.65);" /><span style="font-family:Unbounded,sans-serif;font-size:17px;font-weight:300;color:#A8A8A8;">М. Заболотний</span></div><div style="display:flex;align-items:center;gap:14px;opacity:1;"><img class="bw-pure" src="assets/e312290dca.jpg" alt="Е. Разливанов" style="width:52px;height:52px;border-radius:50%;object-fit:cover;object-position:center 20%;border:2px solid rgba(255,255,255,0.65);" /><span style="font-family:Unbounded,sans-serif;font-size:17px;font-weight:300;color:#A8A8A8;">Е. Разливанов</span></div><div style="display:flex;align-items:center;gap:14px;opacity:1;"><img class="bw-pure" src="assets/0db166d9f5.jpg" alt="В. Трайбер" style="width:52px;height:52px;border-radius:50%;object-fit:cover;object-position:center 20%;border:2px solid #FFFFFF;" /><span style="font-family:Unbounded,sans-serif;font-size:17px;font-weight:700;color:#FFFFFF;">В. Трайбер</span></div></div><div class="kicker" style="font-size:15px;">АРТИСТ 3 ИЗ 3</div></div>
+  </div>
+</section>
+<section class="slide" data-slide="11">
+  <div class="pad">
+    <div class="hdr"><span class="kicker-dim">✦ В ОЖИДАНИИ ГОДО · ЖИВЫЕ СЦЕНЫ</span><span class="folio">11 / 21</span></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:42px;">
+      <div>
+        <img src="assets/28a16a4042.jpg" alt="Виктор Трайбер и Максим Заболотний" style="width:100%;height:530px;object-fit:cover;object-position:center 22%;border:1px solid rgba(255,255,255,0.35);" />
+        <div style="margin-top:16px;font-size:20px;font-weight:400;color:#FFFFFF;">Виктор Трайбер и Максим Заболотний</div>
+      </div>
+      <div>
+        <img src="assets/d21c0060e6.jpg" alt="Сцена с бородами" style="width:100%;height:530px;object-fit:cover;object-position:center 20%;border:1px solid rgba(255,255,255,0.35);" />
+        <div style="margin-top:16px;font-size:20px;font-weight:300;color:var(--text-soft);">Актёрский дуэт — смешно и остро</div>
+      </div>
+    </div>
+    <div style="font-weight:700;font-size:24px;color:#FFFFFF;">
+      ✦ Один курс, одна школа — и живой театр на сцене
+    </div>
+  </div>
+</section>
+<section class="slide" data-slide="12">
+  <img src="assets/becd125323.jpg" alt="Весь состав В ожидании Годо" style="position:absolute;right:0;top:0;width:1620px;height:1080px;object-fit:contain;z-index:1;" />
+  <div style="position:absolute;inset:0;background:linear-gradient(90deg, #0A0A0A 0%, #0A0A0A 16%, rgba(10,10,10,0) 34%);z-index:2;"></div>
+
+  <div class="name-float" style="left:995px;top:92px;text-align:right;">Максим Заболотний<span>артист</span></div>
+  <div class="name-float" style="left:1462px;top:112px;">Виктор Трайбер<span>Владимир</span></div>
+  <div class="name-float" style="left:1408px;top:814px;">Алексей Игнашин<span>режиссёр</span></div>
+  <div class="name-float" style="left:585px;top:856px;text-align:right;">Егор Разливанов<span>артист</span></div>
+
+  <div class="pad">
+    <div class="hdr"><span class="kicker-dim">✦ В ОЖИДАНИИ ГОДО · АНСАМБЛЬ</span><span class="folio">12 / 21</span></div>
+    <div style="max-width:540px;margin-top:40px;">
+      <h1 class="h-disp" style="font-size:56px;margin-bottom:22px;">В ожидании<br/><span style="font-size:86px;"><span class="k-hand">Годо</span></span></h1>
+      <p class="body-md">Готов к показу на вашей сцене — со своим светом и декорациями.</p>
+    </div>
+    <div></div>
+  </div>
+</section>
+<section class="slide" data-slide="13">
+  <div class="pad">
+    <div class="hdr"><span class="kicker-dim">✦ ВЕДУЩИЕ СЦЕНЫ МОСКВЫ</span><span class="folio">13 / 21</span></div>
+    <div>
+      <h1 class="h-disp" style="margin-bottom:44px;">Нас уже <span style="font-size:68px;"><span class="k-hand">знают</span></span></h1>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:34px;">
+        <div style="background:#141414;border:1px solid rgba(255,255,255,0.28);border-top:4px solid #FFFFFF;display:flex;flex-direction:column;justify-content:space-between;overflow:hidden;">
+          <div style="padding:26px 26px 20px;">
+            <div style="font-weight:700;font-size:22px;line-height:1.2;margin-bottom:10px;color:#FFFFFF;">Театр им. Евг. Вахтангова</div>
+            <div style="font-size:28px;color:#FFFFFF;"><span class="k-hand">Егор Разливанов</span></div>
+          </div>
+          <img src="assets/f7f18e25b2.jpg" alt="Егор Разливанов" style="width:100%;height:310px;object-fit:cover;object-position:center 20%;" />
+        </div>
+        <div style="background:#141414;border:1px solid rgba(255,255,255,0.28);border-top:4px solid #FFFFFF;display:flex;flex-direction:column;justify-content:space-between;overflow:hidden;">
+          <div style="padding:26px 26px 20px;">
+            <div style="font-weight:700;font-size:22px;line-height:1.2;margin-bottom:10px;color:#FFFFFF;">«Мастерская Петра Фоменко»</div>
+            <div style="font-size:28px;color:#FFFFFF;"><span class="k-hand">Виктор Трайбер</span></div>
+          </div>
+          <img src="assets/ebc8a4e4eb.jpg" alt="Виктор Трайбер" style="width:100%;height:310px;object-fit:cover;object-position:center 18%;" />
+        </div>
+        <div style="background:#141414;border:1px solid rgba(255,255,255,0.28);border-top:4px solid #FFFFFF;display:flex;flex-direction:column;justify-content:space-between;overflow:hidden;">
+          <div style="padding:26px 26px 20px;">
+            <div style="font-weight:700;font-size:22px;line-height:1.2;margin-bottom:10px;color:#FFFFFF;">РАМТ</div>
+            <div style="font-size:28px;color:#FFFFFF;"><span class="k-hand">Максим Заболотний</span></div>
+          </div>
+          <img src="assets/6ec44aedb1.jpg" alt="Максим Заболотний" style="width:100%;height:310px;object-fit:cover;object-position:center 18%;" />
+        </div></div>
+    </div>
+    <div style="font-size:20px;font-weight:400;color:#FFFFFF;">
+      ✦ Наши артисты играют на главных сценах Москвы и приводят свою публику
+    </div>
+  </div>
+</section>
+<section class="slide" data-slide="14">
+  <div class="pad">
+    <div class="hdr"><span class="kicker-dim">✦ БЛОК 2 · ДРУГИЕ СПЕКТАКЛИ</span><span class="folio">14 / 21</span></div>
+    <div>
+      <div class="kicker-dim" style="margin-bottom:18px;">СПЕКТАКЛЬ КУРСА · КИРИЛЛ ПИРОГОВ И ГАЛИНА ТЮНИНА</div>
+      <h1 class="h-disp" style="font-size:64px;margin-bottom:44px;">Женитьба <span style="font-size:84px;"><span class="k-hand">Фигаро</span></span> · Бомарше</h1>
+      <div style="display:grid;grid-template-columns:0.88fr 1.12fr;gap:52px;align-items:stretch;">
+        <div style="background:#FFFFFF;color:#0A0A0A;padding:40px 36px;">
+          <p style="font-size:22px;line-height:1.5;font-weight:400;color:#0A0A0A;">
+            Дипломный спектакль курса на сценах Щукинского института и «Мастерской Петра Фоменко».
+          </p>
+        </div>
+        <div style="background:#141414;border:1px solid #FFFFFF;padding:40px 42px;">
+          <div class="quote-txt" style="font-size:23px;">
+            «…от пластики, которая должна быть прекрасна, до драматических глубин, от танцевальных дивертисментов до потаённых, исповедальных монологов»
+          </div>
+          <div class="quote-src" style="color:#FFFFFF;">— Кирилл Пирогов, «Смотрим»</div>
+        </div>
+      </div>
+    </div>
+    <div></div>
+  </div>
+</section>
+<section class="slide" data-slide="15">
+  <div class="pad">
+    <div class="hdr"><span class="kicker-dim">✦ СПЕКТАКЛЬ СТУДИИ</span><span class="folio">15 / 21</span></div>
+    <div style="display:grid;grid-template-columns:1.05fr 0.95fr;gap:56px;align-items:center;">
+      <div>
+        <div class="kicker-dim" style="margin-bottom:18px;">ПОСТАНОВКА КИРИЛЛА ПИРОГОВА</div>
+        <h1 class="h-disp" style="font-size:56px;margin-bottom:26px;">И. А. Бунин.<br/><span style="font-size:78px;"><span class="k-hand">В Москве</span></span></h1>
+        <p class="body-md" style="margin-bottom:36px;">
+          По трём рассказам: «Ида», «В одной знакомой улице», «Чистый понедельник». На складках прозрачной органзы оживают стихи Бунина.
+        </p>
+        <a class="music-link" href="https://music.yandex.ru/search?text=%D0%90%D1%83%D0%BA%D1%86%D1%8B%D0%BE%D0%BD%20%D0%9F%D0%BB%D1%8B%D1%82%D1%8C" target="_blank" rel="noopener noreferrer">♪&nbsp; Музыка для настроения</a>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:24px;">
+        <img src="assets/7a68dda444.jpg" alt="Бунин сцена 1" style="width:100%;height:375px;object-fit:cover;border:1px solid rgba(255,255,255,0.28);" />
+        <img src="assets/4be7311f92.jpg" alt="Бунин сцена 2" style="width:100%;height:375px;object-fit:cover;border:1px solid rgba(255,255,255,0.28);" />
+      </div>
+    </div>
+    <div></div>
+  </div>
+</section>
+<section class="slide" data-slide="16">
+  <img class="bg-full" src="assets/dd2d3ed495.jpg" style="object-position: 65% 40%;" alt="Ревизор — сцена" />
+  <div style="position:absolute;inset:0;z-index:2;background:linear-gradient(90deg, rgba(10,10,10,0.94) 0%, rgba(10,10,10,0.72) 48%, rgba(10,10,10,0.16) 100%);"></div>
+  <div class="pad">
+    <div class="hdr"><span class="kicker-dim">✦ ДОМ ГОГОЛЯ</span><span class="folio">16 / 21</span></div>
+    <div style="max-width: 900px;">
+      <div class="kicker-dim" style="margin-bottom:18px;">ДОМ ГОГОЛЯ</div>
+      <h1 style="font-size:128px;line-height:0.95;margin-bottom:14px;"><span class="k-hand">Ревизор</span></h1>
+      <div style="font-weight:700;font-size:28px;color:var(--muted);margin-bottom:32px;">Н. В. Гоголь</div>
+      <div style="width:120px;height:2px;background:#FFFFFF;margin-bottom:30px;"></div>
+      <p class="body-md" style="max-width:820px;">
+        Наш «Ревизор», созданный для Дома Гоголя. Над спектаклем вместе с нами работала Галина Борисовна Тюнина.
+      </p>
+    </div>
+    <div style="font-size:20px;font-weight:700;color:#FFFFFF;">✦ Хлестаков — Владимир Симонов</div>
+  </div>
+</section>
+<section class="slide" data-slide="17">
+  <div class="pad">
+    <div class="hdr"><span class="kicker-dim">✦ РЕВИЗОР · СЦЕНЫ</span><span class="folio">17 / 21</span></div>
+    <div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px 28px;">
+        <img src="assets/ab6deb2c6d.jpg" alt="Ревизор сцена" style="width:100%;height:335px;object-fit:cover;object-position:center 22%;border:1px solid rgba(255,255,255,0.28);" /><img src="assets/6c9a7d240b.jpg" alt="Ревизор сцена" style="width:100%;height:335px;object-fit:cover;object-position:center 22%;border:1px solid rgba(255,255,255,0.28);" /><img src="assets/6df25d0416.jpg" alt="Ревизор сцена" style="width:100%;height:335px;object-fit:cover;object-position:center 22%;border:1px solid rgba(255,255,255,0.28);" /><img src="assets/fb7f71bc78.jpg" alt="Ревизор сцена" style="width:100%;height:335px;object-fit:cover;object-position:center 22%;border:1px solid rgba(255,255,255,0.28);" />
+      </div>
+    </div>
+    <div style="font-size:20px;font-weight:400;color:var(--text-soft);">
+      ✦ Гоголь всерьёз: страх, враньё и желание понравиться — смешно, пока не узнаёшь себя
+    </div>
+  </div>
+</section>
+<section class="slide" data-slide="18">
+  <div style="position:absolute;left:0;top:0;width:720px;height:1080px;overflow:hidden;z-index:1;">
+    <img src="assets/d089dcf773.jpg" alt="Владимир Симонов" style="width:100%;height:100%;object-fit:cover;object-position:center 14%;" />
+    <div style="position:absolute;inset:0;background:linear-gradient(90deg, rgba(10,10,10,0) 64%, #0A0A0A 100%);"></div>
+  </div>
+  <div class="pad">
+    <div class="hdr"><span></span><span class="folio">18 / 21</span></div>
+    <div style="margin-left:740px;max-width:960px;">
+      <div class="kicker-dim" style="margin-bottom:16px;">ДИРЕКТОР И ПРОДЮСЕР</div>
+      <h1 class="h-disp" style="font-size:66px;margin-bottom:22px;">Владимир<br/><span style="font-size:88px;"><span class="k-hand">Симонов</span></span></h1>
+      <div style="width:120px;height:2px;background:#FFFFFF;margin-bottom:26px;"></div>
+      <p class="body-sm" style="font-size:19px;margin-bottom:26px;">
+        Директор и продюсер Театра «Свой», выпускник курса К. Пирогова (Щукинский институт, 2024).<br/>
+        <strong>Артист Театра им. Евг. Вахтангова</strong> (стажёрская группа с 2024), третий в семье на Вахтанговской сцене.<br/>
+        Хлестаков в «Ревизоре»; роли в Вахтанговском: граф Парис, Дан, Ефим, Улан и Чепкун.
+      </p>
+      <div style="display:flex;gap:18px;align-items:center;">
+        <img src="assets/dfa5efd1f1.jpg" alt="Владимир Симонов на Вахтанговской сцене" style="width:290px;height:190px;object-fit:cover;object-position:center 20%;border:1px solid rgba(255,255,255,0.32);" />
+        <div style="font-size:16px;font-weight:300;color:var(--muted);line-height:1.45;">На сцене Театра<br/>им. Евг. Вахтангова</div>
+      </div>
+    </div>
+    <div></div>
+  </div>
+</section>
+<section class="slide" data-slide="19">
+  <div class="pad">
+    <div class="hdr"><span class="kicker-dim">✦ ПОЛНЫЙ РЕПЕРТУАР</span><span class="folio">19 / 21</span></div>
+    <div>
+      <h1 class="h-disp" style="margin-bottom:54px;">Репертуар <span style="font-size:68px;"><span class="k-hand">одним взглядом</span></span></h1>
+      <div class="reveal-grid" style="display:grid;grid-template-columns:repeat(4,1fr);gap:30px;align-items:start;">
+        <div class="paper-item" style="padding:18px 14px;transform:translateY(0px) rotate(-2.0deg);display:flex;flex-direction:column;justify-content:flex-start;">
+          <div style="font-size:14px;color:var(--muted);letter-spacing:0.14em;margin-bottom:10px;">01</div>
+          <div style="font-size:46px;line-height:1.0;color:#FFFFFF;margin-bottom:20px;"><span class="k-hand">В ожидании Годо</span></div>
+          <div style="width:52px;height:1px;background:rgba(255,255,255,0.35);margin-bottom:20px;"></div>
+          <p class="body-sm" style="font-size:18px;line-height:1.48;color:var(--text-soft);margin-bottom:30px;">Беккет, трагикомедия. Наш главный, его и играем сейчас</p>
+          <div class="paper-tag paper-tag-solid" style="transform:rotate(2.8deg);">ГЛАВНЫЙ · ИГРАЕМ</div>
+        </div>
+        <div class="paper-item" style="padding:18px 14px;transform:translateY(42px) rotate(1.6deg);display:flex;flex-direction:column;justify-content:flex-start;">
+          <div style="font-size:14px;color:var(--muted);letter-spacing:0.14em;margin-bottom:10px;">02</div>
+          <div style="font-size:46px;line-height:1.0;color:#FFFFFF;margin-bottom:20px;"><span class="k-hand">Женитьба Фигаро</span></div>
+          <div style="width:52px;height:1px;background:rgba(255,255,255,0.35);margin-bottom:20px;"></div>
+          <p class="body-sm" style="font-size:18px;line-height:1.48;color:var(--text-soft);margin-bottom:30px;">Бомарше. Дипломный спектакль нашего курса</p>
+          <div class="paper-tag" style="transform:rotate(-2.2deg);">ДИПЛОМ КУРСА</div>
+        </div>
+        <div class="paper-item" style="padding:18px 14px;transform:translateY(-10px) rotate(-1.4deg);display:flex;flex-direction:column;justify-content:flex-start;">
+          <div style="font-size:14px;color:var(--muted);letter-spacing:0.14em;margin-bottom:10px;">03</div>
+          <div style="font-size:46px;line-height:1.0;color:#FFFFFF;margin-bottom:20px;"><span class="k-hand">Бунин. В Москве</span></div>
+          <div style="width:52px;height:1px;background:rgba(255,255,255,0.35);margin-bottom:20px;"></div>
+          <p class="body-sm" style="font-size:18px;line-height:1.48;color:var(--text-soft);margin-bottom:30px;">Три рассказа Ивана Бунина, играет студия</p>
+          <div class="paper-tag" style="transform:rotate(2.0deg);">СПЕКТАКЛЬ СТУДИИ</div>
+        </div>
+        <div class="paper-item" style="padding:18px 14px;transform:translateY(34px) rotate(2.0deg);display:flex;flex-direction:column;justify-content:flex-start;">
+          <div style="font-size:14px;color:var(--muted);letter-spacing:0.14em;margin-bottom:10px;">04</div>
+          <div style="font-size:62px;line-height:1.0;color:#FFFFFF;margin-bottom:20px;"><span class="k-hand">Ревизор</span></div>
+          <div style="width:52px;height:1px;background:rgba(255,255,255,0.35);margin-bottom:20px;"></div>
+          <p class="body-sm" style="font-size:18px;line-height:1.48;color:var(--text-soft);margin-bottom:30px;">Гоголь, как есть. Живёт в Доме Гоголя</p>
+          <div class="paper-tag paper-tag-solid" style="transform:rotate(-2.8deg);">ДОМ ГОГОЛЯ</div>
+        </div>
+      </div>
+    </div>
+    <div style="font-size:18px;font-weight:300;color:var(--muted);">Четыре спектакля в репертуаре</div>
+  </div>
+</section>
+<section class="slide" data-slide="20">
+  <div class="pad">
+    <div class="hdr"><span class="kicker-dim">✦ БЛОК 3 · ДЛЯ ВАШЕЙ СЦЕНЫ</span><span class="folio">20 / 21</span></div>
+    <div>
+      <h1 class="h-disp" style="margin-bottom:54px;">Что мы можем <span style="font-size:68px;"><span class="k-hand">предложить</span></span></h1>
+      <div class="reveal-grid" style="display:grid;grid-template-columns:repeat(5,1fr);gap:24px;align-items:start;">
+        <div style="padding:18px 14px;transform:translateY(0px) rotate(-2.2deg);display:flex;flex-direction:column;justify-content:flex-start;">
+          <div style="font-size:14px;color:var(--muted);letter-spacing:0.14em;margin-bottom:10px;">×</div>
+          <div style="font-size:62px;line-height:0.95;color:#FFFFFF;margin-bottom:20px;"><span class="k-hand">три</span></div>
+          <div style="width:52px;height:1px;background:rgba(255,255,255,0.35);margin-bottom:20px;"></div>
+          <p class="body-sm" style="font-size:18px;line-height:1.48;color:var(--text-soft);">показа в месяц — подстроимся под ваш график</p>
+        </div>
+        <div style="padding:18px 14px;transform:translateY(42px) rotate(1.6deg);display:flex;flex-direction:column;justify-content:flex-start;">
+          <div style="font-size:14px;color:var(--muted);letter-spacing:0.14em;margin-bottom:10px;">×</div>
+          <div style="font-size:52px;line-height:0.95;color:#FFFFFF;margin-bottom:20px;"><span class="k-hand">четыре</span></div>
+          <div style="width:52px;height:1px;background:rgba(255,255,255,0.35);margin-bottom:20px;"></div>
+          <p class="body-sm" style="font-size:18px;line-height:1.48;color:var(--text-soft);">спектакля в репертуаре, главный играем сейчас</p>
+        </div>
+        <div style="padding:18px 14px;transform:translateY(-10px) rotate(-1.5deg);display:flex;flex-direction:column;justify-content:flex-start;">
+          <div style="font-size:14px;color:var(--muted);letter-spacing:0.14em;margin-bottom:10px;">×</div>
+          <div style="font-size:62px;line-height:0.95;color:#FFFFFF;margin-bottom:20px;"><span class="k-hand">ноль</span></div>
+          <div style="width:52px;height:1px;background:rgba(255,255,255,0.35);margin-bottom:20px;"></div>
+          <p class="body-sm" style="font-size:18px;line-height:1.48;color:var(--text-soft);">забот о технике: свой световик, свет и декорации</p>
+        </div>
+        <div style="padding:18px 14px;transform:translateY(34px) rotate(2.0deg);display:flex;flex-direction:column;justify-content:flex-start;">
+          <div style="font-size:14px;color:var(--muted);letter-spacing:0.14em;margin-bottom:10px;">×</div>
+          <div style="font-size:62px;line-height:0.95;color:#FFFFFF;margin-bottom:20px;"><span class="k-hand">три</span></div>
+          <div style="width:52px;height:1px;background:rgba(255,255,255,0.35);margin-bottom:20px;"></div>
+          <p class="body-sm" style="font-size:18px;line-height:1.48;color:var(--text-soft);">артиста ведущих театров Москвы в «Годо»</p>
+        </div>
+        <div style="padding:18px 14px;transform:translateY(12px) rotate(-1.8deg);display:flex;flex-direction:column;justify-content:flex-start;">
+          <div style="font-size:14px;color:var(--muted);letter-spacing:0.14em;margin-bottom:10px;">×</div>
+          <div style="font-size:62px;line-height:0.95;color:#FFFFFF;margin-bottom:20px;"><span class="k-hand">пять</span></div>
+          <div style="width:52px;height:1px;background:rgba(255,255,255,0.35);margin-bottom:20px;"></div>
+          <p class="body-sm" style="font-size:18px;line-height:1.48;color:var(--text-soft);">площадок Москвы, где мы уже играли</p>
+        </div></div>
+    </div>
+    <div style="font-size:18px;font-weight:300;color:var(--muted);">Театр «Свой» · Школа Кирилла Пирогова</div>
+  </div>
+</section>
+<section class="slide" data-slide="21">
+  <img class="bg-full" src="assets/9fdd4a3c13.jpg" alt="Финал" style="object-position:center center;filter:grayscale(85%) contrast(1.10) brightness(0.46);" />
+  <div style="position:absolute;inset:0;z-index:2;background:radial-gradient(circle at 50% 48%, rgba(10,10,10,0.35), rgba(10,10,10,0.88) 85%);"></div>
+  <div class="pad" style="text-align:center;align-items:center;">
+    <div class="hdr"><span class="kicker-dim">✦ ФИНАЛ</span><span class="folio">21 / 21</span></div>
+    <div style="max-width:1280px;">
+      <div style="display:inline-flex;align-items:baseline;gap:24px;margin-bottom:32px;">
+        <span style="font-family:'Koryavy Paltsem','Unbounded',sans-serif;font-size:104px;color:transparent;-webkit-text-stroke:3px #FFFFFF;paint-order:stroke fill;"><span class="k-hand">СВОЙ</span></span>
+        <span style="font-family:'Unbounded',sans-serif;font-weight:900;font-size:66px;color:#FFFFFF;">ТЕАТР</span>
+      </div>
+      <h1 class="h-disp" style="font-size:56px;line-height:1.15;margin-bottom:28px;">
+        Будем рады стать <span style="font-size:78px;"><span class="k-hand">своими</span></span> на вашей сцене
+      </h1>
+      <p class="body-lg">
+        Спасибо за внимание — с радостью покажем спектакль вживую.
+      </p>
+    </div>
+    <div></div>
+  </div>
+</section>
+  </div>
+  <div class="rotate-hint on" id="rotateHint">↻ Для телефона: поверните горизонтально · листать свайпом</div>
+  <div class="vmodal" id="vmodal" role="dialog" aria-label="Видеопрезентация"><button class="vclose" id="vclose" type="button" aria-label="Закрыть">✕</button><video id="vplayer" controls playsinline preload="none" poster="video/poster.jpg"><source src="video/svoy.mp4" type="video/mp4"></video></div>
+  <nav class="deck-nav" aria-label="Навигация по слайдам">
+    <button type="button" id="prevSlide" title="Предыдущий слайд">←</button>
+    <span id="slideCounter">1 / 21</span>
+    <button type="button" id="fsBtn" title="Во весь экран (F)">⛶</button>
+    <button type="button" id="nextSlide" title="Следующий слайд">→</button>
+  </nav>
+<script>
+  (function () {
+    var slides = Array.prototype.slice.call(document.querySelectorAll('.slide'));
+    var counter = document.getElementById('slideCounter');
+    var current = 0;
+    function fitViewport() {
+      var vp = document.getElementById('deckViewport');
+      if (!vp) return;
+      var s = Math.min(window.innerWidth / 1920, window.innerHeight / 1080);
+      vp.style.transform = 'scale(' + s + ')';
+    }
+    window.addEventListener('resize', fitViewport);
+    fitViewport();
+    function showSlide(idx) {
+      if (!slides.length) return;
+      current = Math.max(0, Math.min(slides.length - 1, idx));
+      slides.forEach(function (el, i) { el.classList.toggle('active', i === current); });
+      if (counter) counter.textContent = (current + 1) + ' / ' + slides.length;
+    }
+    var q = new URLSearchParams(location.search).get('slide');
+    var m = location.hash.match(/slide-(\d+)/);
+    if (q) showSlide(parseInt(q, 10) - 1);
+    else if (m) showSlide(parseInt(m[1], 10) - 1);
+    else showSlide(0);
+    document.getElementById('prevSlide').addEventListener('click', function () { showSlide(current - 1); });
+    document.getElementById('nextSlide').addEventListener('click', function () { showSlide(current + 1); });
+    document.addEventListener('keydown', function (ev) {
+      if (ev.key === 'ArrowRight' || ev.key === 'PageDown' || ev.key === ' ') { ev.preventDefault(); showSlide(current + 1); }
+      else if (ev.key === 'ArrowLeft' || ev.key === 'PageUp') { ev.preventDefault(); showSlide(current - 1); }
+    });
+
+
+    // v7.1: fullscreen + auto-hide nav
+    (function () {
+      var nav = document.querySelector('.deck-nav'), t;
+      function wake() { if (!nav) return; nav.classList.remove('idle'); clearTimeout(t); t = setTimeout(function () { nav.classList.add('idle'); }, 2500); }
+      ['mousemove', 'keydown', 'touchstart'].forEach(function (e) { document.addEventListener(e, wake, { passive: true }); });
+      wake();
+      function fs() { var d = document.documentElement; if (!document.fullscreenElement) { (d.requestFullscreen || d.webkitRequestFullscreen || function(){}).call(d); } else { (document.exitFullscreen || document.webkitExitFullscreen).call(document); } }
+      var b = document.getElementById('fsBtn'); if (b) b.addEventListener('click', fs);
+      document.addEventListener('keydown', function (e) { if (e.key === 'f' || e.key === 'F' || e.key === 'а' || e.key === 'А') fs(); });
+    })();
+
+    // v7.2: video modal (site version)
+    (function () {
+      var m = document.getElementById('vmodal'), v = document.getElementById('vplayer');
+      if (!m || !v) return;
+      function close() { m.classList.remove('on'); try { v.pause(); } catch (e) {} }
+      document.querySelectorAll('.video-link').forEach(function (a) {
+        a.addEventListener('click', function (e) { e.preventDefault(); m.classList.add('on'); try { v.play(); } catch (err) {} });
+      });
+      document.getElementById('vclose').addEventListener('click', close);
+      m.addEventListener('click', function (e) { if (e.target === m) close(); });
+      document.addEventListener('keydown', function (e) { if (e.key === 'Escape') close(); }, true);
+      ['keydown','touchend'].forEach(function (t) { document.addEventListener(t, function (e) { if (m.classList.contains('on') && !(t === 'keydown' && e.key === 'Escape')) e.stopImmediatePropagation(); }, true); });
+    })();
+    // v7: swipe on phone + hint
+    (function () {
+      var x0 = null, y0 = null;
+      document.addEventListener('touchstart', function (e) { var t = e.changedTouches[0]; x0 = t.clientX; y0 = t.clientY; }, { passive: true });
+      document.addEventListener('touchend', function (e) {
+        if (x0 === null) return;
+        var t = e.changedTouches[0], dx = t.clientX - x0, dy = t.clientY - y0; x0 = null;
+        if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy) * 1.4) { showSlide(current + (dx < 0 ? 1 : -1)); }
+      }, { passive: true });
+      var hint = document.getElementById('rotateHint');
+      if (hint) { setTimeout(function () { hint.classList.remove('on'); }, 6000); hint.addEventListener('click', function () { hint.classList.remove('on'); }); }
+    })();
+  })();
+</script>
+</body>
+</html>
