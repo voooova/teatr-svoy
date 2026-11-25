@@ -149,7 +149,7 @@
   .deck-nav button:hover { opacity: .7; }
 
   /* v7.2: video presentation button + player */
-  .s1-links { display: flex; align-items: center; gap: 34px; }
+  .s1-links { display: flex; align-items: center; gap: 44px; position: relative; bottom: 46px; }
   .video-link { cursor: pointer; background: none; border: none; border-bottom: 1px solid rgba(255,255,255,0.28); }
   .vmodal { position: fixed; inset: 0; z-index: 2000; display: none; align-items: center; justify-content: center; background: rgba(0,0,0,0.92); padding: 4vmin; }
   .vmodal.on { display: flex; animation: fadeIn .35s ease both; }
@@ -157,13 +157,13 @@
   .vmodal .vclose { position: absolute; top: 14px; right: 18px; background: none; border: 1px solid rgba(255,255,255,.35); color: #fff; border-radius: 9999px; width: 40px; height: 40px; font-size: 18px; cursor: pointer; font-family: 'Unbounded', sans-serif; }
 
   /* v7.3: audio play button, hand-drawn style */
-  .music-play { display: inline-flex; align-items: center; gap: 11px; cursor: pointer; background: none; border: none; border-bottom: 1px solid rgba(255,255,255,0.28); padding: 0 0 5px; color: rgba(255,255,255,0.88); }
-  .music-play .mp-ic { display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; border: 1.5px solid rgba(255,255,255,0.7); border-radius: 50%; font-size: 11px; line-height: 1; padding-left: 2px; font-family: 'Unbounded', sans-serif; }
-  .music-play .mp-t { font-size: 21px; letter-spacing: 0.02em; }
+  .music-play { display: inline-flex; align-items: center; gap: 15px; cursor: pointer; background: none; border: none; border-bottom: 1px solid rgba(255,255,255,0.28); padding: 0 0 5px; color: rgba(255,255,255,0.88); }
+  .music-play .mp-ic { display: inline-flex; align-items: center; justify-content: center; width: 42px; height: 42px; border: 2px solid rgba(255,255,255,0.8); border-radius: 50%; font-size: 15px; line-height: 1; padding-left: 2px; font-family: 'Unbounded', sans-serif; }
+  .music-play .mp-t { font-size: 30px; letter-spacing: 0.02em; }
   .music-play:hover { color: #fff; }
   .music-play.playing .mp-ic { background: #fff; color: #0A0A0A; padding-left: 0; }
   .music-play.playing { border-bottom-color: #fff; }
-  .video-link { font-family: 'Koryavy Paltsem', 'Unbounded', sans-serif; font-size: 21px; font-weight: 400; letter-spacing: 0.02em; color: rgba(255,255,255,0.88); padding-bottom: 5px; }
+  .video-link { font-family: 'Koryavy Paltsem', 'Unbounded', sans-serif; font-size: 26px; font-weight: 400; letter-spacing: 0.02em; color: rgba(255,255,255,0.88); padding-bottom: 5px; }
   @media print {
     html, body { background: none; display: block; overflow: visible; }
     .deck-nav { display: none !important; }
@@ -717,6 +717,7 @@
   <nav class="deck-nav" aria-label="Навигация по слайдам">
     <button type="button" id="prevSlide" title="Предыдущий слайд">←</button>
     <span id="slideCounter">1 / 21</span>
+    <button type="button" id="musicStop" title="Остановить музыку" style="display:none">♪ ❚❚</button>
     <button type="button" id="fsBtn" title="Во весь экран (F)">⛶</button>
     <button type="button" id="nextSlide" title="Следующий слайд">→</button>
   </nav>
@@ -777,21 +778,21 @@
       ['keydown','touchend'].forEach(function (t) { document.addEventListener(t, function (e) { if (m.classList.contains('on') && !(t === 'keydown' && e.key === 'Escape')) e.stopImmediatePropagation(); }, true); });
     })();
 
-    // v7.3: music players (one at a time, stop when slide changes)
+    // v7.4: music keeps playing across slides until stopped or replaced
     (function () {
-      var cur = null, audio = new Audio(); audio.preload = 'none';
-      function stop() { audio.pause(); if (cur) { cur.classList.remove('playing'); cur.querySelector('.mp-ic').textContent = '▶'; cur = null; } }
+      var cur = null, audio = new Audio(), ms = document.getElementById('musicStop'); audio.preload = 'none';
+      function ui() { document.querySelectorAll('.music-play').forEach(function (b) { var on = b === cur; b.classList.toggle('playing', on); b.querySelector('.mp-ic').textContent = on ? '❚❚' : '▶'; }); if (ms) ms.style.display = cur ? '' : 'none'; }
+      function stop() { audio.pause(); cur = null; ui(); }
       audio.addEventListener('ended', stop);
       document.querySelectorAll('.music-play').forEach(function (b) {
         b.addEventListener('click', function (e) {
           e.stopPropagation(); b.blur();
           if (cur === b) { stop(); return; }
-          stop(); audio.src = b.getAttribute('data-src'); audio.currentTime = 0;
+          audio.src = b.getAttribute('data-src'); audio.currentTime = 0; cur = b; ui();
           var p = audio.play(); if (p && p.catch) p.catch(function () { stop(); });
-          cur = b; b.classList.add('playing'); b.querySelector('.mp-ic').textContent = '❚❚';
         });
       });
-      new MutationObserver(function () { if (cur && !cur.closest('.slide.active')) stop(); }).observe(document.querySelector('.deck-stage-wrap'), { subtree: true, attributes: true, attributeFilter: ['class'] });
+      if (ms) ms.addEventListener('click', function () { stop(); });
       document.addEventListener('keydown', function (e) { if (e.key === ' ' && document.activeElement && document.activeElement.classList && document.activeElement.classList.contains('music-play')) e.preventDefault(); }, true);
     })();
     // v7: swipe on phone + hint
